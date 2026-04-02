@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NWO Textile &amp; Fashion — Full Raw Network</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  :root {
+    --bg:          #1a1a2e;
+    --panel:       #16213e;
+    --panel2:      #0f3460;
+    --border:      #2a2a5a;
+    --text:        #e0e0f0;
+    --text-dim:    #8888aa;
+    --accent:      #f5a623;
+    --accent2:     #4a90d9;
+    --green:       #4caf50;
+    --red:         #e53935;
+    --purple:      #9c27b0;
+    --teal:        #00bcd4;
+    --pink:        #e91e63;
+    --orange:      #ff5722;
+    --node-proj:   #f5a623;
+    --node-inst:   #4a90d9;
+    --link:        #3a3a6a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 15px; font-weight: 600; color: var(--accent); white-space: nowrap; }
+  header .subtitle { font-size: 11px; color: var(--text-dim); }
+  #stats { margin-left: auto; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+
+  /* ── Layout ── */
+  .main-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    width: 220px;
+    min-width: 220px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-scroll {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px;
+  }
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: var(--panel); }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Search */
+  .search-wrap {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  #search {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    padding: 5px 8px;
+    font-size: 12px;
+    outline: none;
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--text-dim); }
+
+  /* Section headers */
+  .section-hd {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 8px 4px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-hd button {
+    font-size: 9px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 3px;
+    padding: 1px 5px;
+    cursor: pointer;
+  }
+  .section-hd button:hover { color: var(--text); border-color: var(--text-dim); }
+
+  /* Checkboxes */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .check-row:hover { background: var(--panel2); }
+  .check-row input[type=checkbox] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .check-row label {
+    flex: 1;
+    font-size: 11px;
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .check-row .badge {
+    font-size: 9px;
+    background: var(--panel2);
+    color: var(--text-dim);
+    border-radius: 8px;
+    padding: 0 5px;
+    flex-shrink: 0;
+  }
+
+  /* Keyword pill toggles */
+  .kw-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+  }
+  .kw-pill {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s, color 0.15s;
+  }
+  .kw-pill.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
+
+  /* Display toggles */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
+  }
+  .toggle-row label { font-size: 11px; color: var(--text-dim); }
+
+  /* Legend */
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Graph canvas ── */
+  #graph-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  svg#graph {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+  }
+
+  /* ── Loading overlay ── */
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    z-index: 200;
+  }
+  #loading .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { font-size: 12px; color: var(--text-dim); }
+
+  /* ── Tooltip ── */
+  #tooltip {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    max-width: 300px;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+    line-height: 1.5;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  #tooltip h3 { font-size: 12px; color: var(--accent); margin-bottom: 4px; }
+  #tooltip .tt-meta { font-size: 11px; color: var(--text-dim); }
+  #tooltip .tt-terms { font-size: 10px; color: var(--teal); margin-top: 4px; }
+  #tooltip a { color: var(--accent2); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>NWO · Textile &amp; Fashion Research Network — Full Raw Dataset</h1>
+    <div class="subtitle">Force-directed graph · keyword-filtered · projects ↔ institutions</div>
+  </div>
+  <div id="stats">Loading…</div>
+</header>
+
+<div class="main-layout">
+  <!-- ── Sidebar ── -->
+  <aside>
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Search projects…">
+    </div>
+    <div class="sidebar-scroll">
+
+      <!-- Keyword filter pills -->
+      <div class="section-hd">Keywords (match any)</div>
+      <div class="kw-pills" id="kw-pills"></div>
+
+      <hr class="divider">
+
+      <!-- Funding types -->
+      <div class="section-hd">
+        Funding type
+        <button id="btn-all-fund">all</button>
+      </div>
+      <div id="fund-checks"></div>
+
+      <hr class="divider">
+
+      <!-- Display toggles -->
+      <div class="section-hd">Display</div>
+      <div class="toggle-row">
+        <input type="checkbox" id="show-labels" checked>
+        <label for="show-labels">Project labels</label>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="show-inst" checked>
+        <label for="show-inst">Institutions</label>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="show-orphan">
+        <label for="show-orphan">Orphan institutions</label>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Legend -->
+      <div class="section-hd">Legend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f5a623"></div> NWA</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e53935"></div> RAAK-Pro</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9c27b0"></div> RAAK-MKB</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4caf50"></div> RAAK-Publiek</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00bcd4"></div> KIEM</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#78909c"></div> Other</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4a90d9; border:1px solid #aaa"></div> Institution</div>
+    </div>
+  </aside>
+
+  <!-- ── Graph ── -->
+  <div id="graph-wrap">
+    <svg id="graph"></svg>
+    <div id="loading">
+      <div class="spinner"></div>
+      <p id="loading-msg">Loading nwo_textile_raw.json…</p>
+    </div>
+    <div id="tooltip"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  Guard: ensure D3 loaded
+// ═══════════════════════════════════════════════════════════════
+if (typeof d3 === 'undefined') {
+  document.getElementById('loading').innerHTML =
+    '<h2 style="color:#e53935">D3.js failed to load</h2>' +
+    '<p>Check your internet connection and reload.</p>';
+  throw new Error('D3 not available');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Original keyword list used to identify textile/fashion projects
+// ═══════════════════════════════════════════════════════════════
+const ALL_KEYWORDS = ['textile', 'textiel', 'fashion', 'garment'];
+
+// ═══════════════════════════════════════════════════════════════
+//  Funding scheme helpers
+// ═══════════════════════════════════════════════════════════════
+const FUND_ORDER = ['nwa','raak-pro','raak-mkb','raak-publiek','kiem'];
+const FUND_COLOR = {
+  'nwa':          '#f5a623',
+  'raak-pro':     '#e53935',
+  'raak-mkb':     '#9c27b0',
+  'raak-publiek': '#4caf50',
+  'kiem':         '#00bcd4',
+  'other':        '#78909c',
+};
+function fundKey(scheme) {
+  if (!scheme) return 'other';
+  const s = scheme.toLowerCase();
+  for (const k of FUND_ORDER) if (s.includes(k.replace('-',''))) return k;
+  // handle variants: "raak pro" without hyphen
+  if (s.includes('raak') && s.includes('pro'))    return 'raak-pro';
+  if (s.includes('raak') && s.includes('mkb'))    return 'raak-mkb';
+  if (s.includes('raak') && s.includes('publ'))   return 'raak-publiek';
+  if (s.includes('kiem'))                          return 'kiem';
+  if (s.includes('nwa'))                           return 'nwa';
+  return 'other';
+}
+function fundColor(scheme) { return FUND_COLOR[fundKey(scheme)] || FUND_COLOR.other; }
+
+// ═══════════════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════════════
+let allProjects  = [];          // parsed + annotated from raw
+let activeKw     = new Set(ALL_KEYWORDS);
+let activeFund   = new Set();
+let searchQ      = '';
+let showLabels   = true;
+let showInst     = true;
+let showOrphan   = false;
+let simulation   = null;
+
+// ═══════════════════════════════════════════════════════════════
+//  SVG / zoom setup
+// ═══════════════════════════════════════════════════════════════
+const svg   = d3.select('#graph');
+const zoomG = svg.append('g').attr('class','zoom-root');
+const linkG = zoomG.append('g').attr('class','links');
+const nodeG = zoomG.append('g').attr('class','nodes');
+const labelG= zoomG.append('g').attr('class','labels');
+
+const zoom = d3.zoom()
+  .scaleExtent([0.05, 10])
+  .on('zoom', e => zoomG.attr('transform', e.transform));
+svg.call(zoom);
+svg.on('dblclick.zoom', () =>
+  svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity));
+
+// ═══════════════════════════════════════════════════════════════
+//  Tooltip
+// ═══════════════════════════════════════════════════════════════
+const tooltip = document.getElementById('tooltip');
+function showTip(evt, html) {
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+  moveTip(evt);
+}
+function moveTip(evt) {
+  const r = document.getElementById('graph-wrap').getBoundingClientRect();
+  let x = evt.clientX - r.left + 14, y = evt.clientY - r.top + 14;
+  if (x + 310 > r.width)  x = evt.clientX - r.left - 320;
+  if (y + 200 > r.height) y = evt.clientY - r.top  - 210;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top  = y + 'px';
+}
+function hideTip() { tooltip.style.display = 'none'; }
+
+// ═══════════════════════════════════════════════════════════════
+//  Annotate raw projects: extract PI, terms, normalise fields
+// ═══════════════════════════════════════════════════════════════
+function annotate(raw) {
+  return raw.map(p => {
+    // searchable text
+    const hay = [p.title, p.summary_nl, p.summary_en]
+      .filter(Boolean).join(' ').toLowerCase();
+
+    // matched keywords
+    const terms = ALL_KEYWORDS.filter(k => hay.includes(k));
+
+    // PI: prefer Main Applicant, then Project leader, then first member
+    const members = p.project_members || [];
+    const pi = members.find(m => /main applicant/i.test(m.role || ''))
+            || members.find(m => /project leader/i.test(m.role || ''))
+            || members[0]
+            || null;
+    const piName = pi ? `${pi.first_name || ''} ${pi.last_name || ''}`.trim() : '';
+    const piInst = pi ? (pi.organisation || '').split('||')[0].trim() : '';
+
+    return {
+      ...p,
+      title_en:         p.title || '',
+      _matched_terms:   terms,
+      _pi_name:         piName,
+      _pi_institution:  piInst,
+      project_page_url: p.project_id
+        ? `https://www.nwo.nl/projecten/${p.project_id}` : '',
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Build keyword pill toggles
+// ═══════════════════════════════════════════════════════════════
+function buildKwPills() {
+  const container = document.getElementById('kw-pills');
+  container.innerHTML = '';
+  ALL_KEYWORDS.forEach(kw => {
+    const pill = document.createElement('span');
+    pill.className = 'kw-pill active';
+    pill.textContent = kw;
+    pill.dataset.kw = kw;
+    pill.addEventListener('click', () => {
+      if (activeKw.has(kw)) {
+        // keep at least one active
+        if (activeKw.size === 1) return;
+        activeKw.delete(kw);
+        pill.classList.remove('active');
+      } else {
+        activeKw.add(kw);
+        pill.classList.add('active');
+      }
+      render();
+    });
+    container.appendChild(pill);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Build funding-type checkboxes (dynamic from data)
+// ═══════════════════════════════════════════════════════════════
+function buildFundFilters(projects) {
+  const fundCount = {};
+  projects.forEach(p => {
+    const k = fundKey(p.funding_scheme);
+    fundCount[k] = (fundCount[k] || 0) + 1;
+  });
+  const order = [...FUND_ORDER, 'other'].filter(k => fundCount[k]);
+  activeFund = new Set(order);
+
+  const div = document.getElementById('fund-checks');
+  div.innerHTML = '';
+  order.forEach(k => {
+    const row = document.createElement('div');
+    row.className = 'check-row';
+    const id = 'f_' + k;
+    row.innerHTML = `
+      <input type="checkbox" id="${id}" checked data-fund="${k}">
+      <label for="${id}" style="color:${FUND_COLOR[k]}">${k.toUpperCase()}</label>
+      <span class="badge">${fundCount[k]}</span>`;
+    row.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) activeFund.add(k); else activeFund.delete(k);
+      render();
+    });
+    div.appendChild(row);
+  });
+}
+
+document.getElementById('btn-all-fund').addEventListener('click', () => {
+  document.querySelectorAll('[data-fund]').forEach(cb => {
+    cb.checked = true;
+    activeFund.add(cb.dataset.fund);
+  });
+  render();
+});
+
+// ── Display toggles ──
+document.getElementById('show-labels').addEventListener('change', e => { showLabels = e.target.checked; render(); });
+document.getElementById('show-inst').addEventListener('change',   e => { showInst   = e.target.checked; render(); });
+document.getElementById('show-orphan').addEventListener('change', e => { showOrphan = e.target.checked; render(); });
+
+// ── Search ──
+document.getElementById('search').addEventListener('input', e => {
+  searchQ = e.target.value.trim().toLowerCase();
+  render();
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  Filter projects
+// ═══════════════════════════════════════════════════════════════
+function filterProjects() {
+  return allProjects.filter(p => {
+    // must match at least one active keyword
+    if (!p._matched_terms.some(t => activeKw.has(t))) return false;
+
+    // funding filter
+    if (!activeFund.has(fundKey(p.funding_scheme))) return false;
+
+    // free-text search
+    if (searchQ) {
+      const hay = [
+        p.title_en, p.summary_en, p.summary_nl,
+        p._pi_name, p._pi_institution,
+        p.project_id, p.funding_scheme,
+      ].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(searchQ)) return false;
+    }
+
+    return true;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Build graph data (nodes + links)
+// ═══════════════════════════════════════════════════════════════
+function buildGraph(projects) {
+  const nodes = [], links = [];
+  const instMap = new Map();
+
+  projects.forEach(p => {
+    const pid   = String(p.project_id || Math.random().toString(36).slice(2));
+    const title = p.title_en || pid;
+    const pNode = {
+      id:        pid,
+      type:      'project',
+      label:     title.length > 45 ? title.slice(0,42)+'…' : title,
+      fullTitle: title,
+      scheme:    p.funding_scheme || '',
+      start:     (p.start_date || '').slice(0, 4),
+      end:       (p.end_date   || '').slice(0, 4),
+      pi:        p._pi_name || '',
+      piInst:    p._pi_institution || '',
+      terms:     p._matched_terms || [],
+      url:       p.project_page_url || '',
+      r: 6,
+    };
+    nodes.push(pNode);
+
+    const members = p.project_members || [];
+    const orgsForProject = new Set();
+    members.forEach(m => {
+      const orgStr = m.organisation || m.organization || '';
+      orgStr.split('||').map(s => s.trim()).filter(s => s.length > 2).forEach(org => {
+        if (orgsForProject.has(org)) return;
+        orgsForProject.add(org);
+        if (!instMap.has(org)) {
+          const iNode = {
+            id:        'inst_' + org,
+            type:      'institution',
+            label:     org.length > 35 ? org.slice(0,32)+'…' : org,
+            fullLabel: org,
+            r: 4,
+            count: 0,
+          };
+          instMap.set(org, iNode);
+          nodes.push(iNode);
+        }
+        instMap.get(org).count++;
+        links.push({ source: pid, target: 'inst_' + org });
+      });
+    });
+  });
+
+  instMap.forEach(n => { n.r = Math.min(3 + n.count * 0.8, 10); });
+  return { nodes, links };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Render
+// ═══════════════════════════════════════════════════════════════
+function render() {
+  const projects = filterProjects();
+  let { nodes: rawNodes, links: rawLinks } = buildGraph(projects);
+
+  let nodes, links;
+  if (!showInst) {
+    nodes = rawNodes.filter(n => n.type === 'project');
+    links = [];
+  } else {
+    const instDegree = {};
+    rawLinks.forEach(l => { instDegree[l.target] = (instDegree[l.target]||0) + 1; });
+    nodes = rawNodes.filter(n => {
+      if (n.type === 'project') return true;
+      const deg = rawLinks.filter(l => l.target === n.id || l.source === n.id).length;
+      return showOrphan || deg > 1;
+    });
+    const nodeIds = new Set(nodes.map(n => n.id));
+    links = rawLinks.filter(l => nodeIds.has(l.source) && nodeIds.has(l.target));
+  }
+
+  // stats
+  const nP = nodes.filter(n => n.type==='project').length;
+  const nI = nodes.filter(n => n.type==='institution').length;
+  document.getElementById('stats').textContent =
+    `${nP} projects · ${nI} institutions · ${links.length} links`;
+
+  if (simulation) simulation.stop();
+  linkG.selectAll('*').remove();
+  nodeG.selectAll('*').remove();
+  labelG.selectAll('*').remove();
+  if (nodes.length === 0) return;
+
+  const W = svg.node().clientWidth  || 900;
+  const H = svg.node().clientHeight || 600;
+
+  nodes.forEach(n => {
+    if (n.x === undefined) {
+      n.x = W/2 + (Math.random()-0.5)*100;
+      n.y = H/2 + (Math.random()-0.5)*100;
+    }
+  });
+
+  // ── Links ──
+  const link = linkG.selectAll('line')
+    .data(links).join('line')
+    .attr('stroke', '#2a2a5a')
+    .attr('stroke-width', 0.8)
+    .attr('stroke-opacity', 0.6);
+
+  // ── Nodes ──
+  const node = nodeG.selectAll('circle')
+    .data(nodes, d => d.id).join('circle')
+    .attr('r', d => d.r)
+    .attr('fill', d => d.type==='project' ? fundColor(d.scheme) : '#4a90d9')
+    .attr('fill-opacity', d => d.type==='project' ? 0.9 : 0.65)
+    .attr('stroke', d => d.type==='project' ? '#fff' : '#aaa')
+    .attr('stroke-width', d => d.type==='project' ? 0.8 : 0.4)
+    .style('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', dragStart)
+      .on('drag',  dragged)
+      .on('end',   dragEnd))
+    .on('mouseover', (evt, d) => {
+      let html;
+      if (d.type === 'project') {
+        html = `<h3>${escHtml(d.fullTitle)}</h3>
+          <div class="tt-meta">
+            <b>Scheme:</b> ${escHtml(d.scheme)}<br>
+            <b>Period:</b> ${d.start||'?'} – ${d.end||'?'}<br>
+            ${d.pi    ? `<b>PI:</b> ${escHtml(d.pi)}<br>` : ''}
+            ${d.piInst? `<b>Institution:</b> ${escHtml(d.piInst)}<br>` : ''}
+          </div>
+          ${d.terms.length ? `<div class="tt-terms">🏷 ${d.terms.join(' · ')}</div>` : ''}
+          ${d.url ? `<div style="margin-top:5px"><a href="${escHtml(d.url)}" target="_blank">NWO project page ↗</a></div>` : ''}`;
+      } else {
+        html = `<h3 style="color:#4a90d9">${escHtml(d.fullLabel)}</h3>
+          <div class="tt-meta">Research institution · ${d.count} project(s)</div>`;
+      }
+      showTip(evt, html);
+      link.attr('stroke-opacity', l =>
+          (l.source.id===d.id||l.target.id===d.id) ? 1 : 0.08)
+        .attr('stroke', l =>
+          (l.source.id===d.id||l.target.id===d.id) ? '#f5a623' : '#2a2a5a');
+      node.attr('fill-opacity', n =>
+        n.id===d.id ? 1 :
+        links.some(l=>(l.source.id===d.id&&l.target.id===n.id)||(l.target.id===d.id&&l.source.id===n.id))
+          ? 0.95 : 0.2);
+    })
+    .on('mousemove', moveTip)
+    .on('mouseout', () => {
+      hideTip();
+      link.attr('stroke-opacity', 0.6).attr('stroke', '#2a2a5a');
+      node.attr('fill-opacity', d => d.type==='project' ? 0.9 : 0.65);
+    })
+    .on('click', (evt, d) => { if (d.url) window.open(d.url, '_blank'); });
+
+  // ── Labels ──
+  labelG.selectAll('text')
+    .data(showLabels ? nodes.filter(n=>n.type==='project') : [], d => d.id)
+    .join('text')
+    .text(d => d.label)
+    .attr('font-size', '7px')
+    .attr('fill', '#ccccee')
+    .attr('pointer-events', 'none')
+    .attr('dy', d => -d.r - 2);
+
+  // ── Simulation ──
+  simulation = d3.forceSimulation(nodes)
+    .force('link',   d3.forceLink(links).id(d=>d.id)
+                       .distance(d => d.source.type==='project' ? 22 : 18)
+                       .strength(0.7))
+    .force('charge', d3.forceManyBody().strength(d => d.type==='project' ? -18 : -8))
+    .force('collide',d3.forceCollide(d => d.type==='project' ? 8 : 4))
+    .force('center', d3.forceCenter(W/2, H/2).strength(0.18))
+    .force('x',      d3.forceX(W/2).strength(0.10))
+    .force('y',      d3.forceY(H/2).strength(0.10))
+    .alphaDecay(0.025)
+    .on('tick', ticked)
+    .on('end',  fitView);
+
+  function ticked() {
+    link
+      .attr('x1', d=>d.source.x).attr('y1', d=>d.source.y)
+      .attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+    node.attr('cx', d=>d.x).attr('cy', d=>d.y);
+    labelG.selectAll('text').attr('x', d=>d.x).attr('y', d=>d.y);
+  }
+
+  // ── Auto-fit: zoom to bounding box of all nodes ──
+  function fitView() {
+    const pad = 40;
+    let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+    nodes.forEach(n => {
+      x0=Math.min(x0,n.x-n.r); y0=Math.min(y0,n.y-n.r);
+      x1=Math.max(x1,n.x+n.r); y1=Math.max(y1,n.y+n.r);
+    });
+    const bW=x1-x0||1, bH=y1-y0||1;
+    const scale = Math.min(0.95, Math.min((W-pad*2)/bW, (H-pad*2)/bH));
+    const tx = W/2 - scale*(x0+bW/2);
+    const ty = H/2 - scale*(y0+bH/2);
+    svg.transition().duration(800)
+      .call(zoom.transform, d3.zoomIdentity.translate(tx,ty).scale(scale));
+  }
+
+  function dragStart(evt, d) {
+    if (!evt.active) simulation.alphaTarget(0.3).restart();
+    d.fx=d.x; d.fy=d.y;
+  }
+  function dragged(evt, d) { d.fx=evt.x; d.fy=evt.y; }
+  function dragEnd(evt, d) {
+    if (!evt.active) simulation.alphaTarget(0);
+    d.fx=null; d.fy=null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Ingest annotated data
+// ═══════════════════════════════════════════════════════════════
+function ingest(raw) {
+  document.getElementById('loading-msg').textContent = 'Annotating projects…';
+  // yield to browser paint, then process
+  setTimeout(() => {
+    allProjects = annotate(raw);
+    // keep only projects that match at least one keyword
+    const matched = allProjects.filter(p => p._matched_terms.length > 0);
+    allProjects = matched;
+
+    buildKwPills();
+    buildFundFilters(allProjects);
+
+    document.getElementById('loading').style.display = 'none';
+    render();
+  }, 30);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Auto-load nwo_textile_raw.json
+// ═══════════════════════════════════════════════════════════════
+(async function autoLoad() {
+  const candidates = [
+    'nwo_textile_raw.json',
+    './nwo_textile_raw.json',
+  ];
+  for (const url of candidates) {
+    try {
+      document.getElementById('loading-msg').textContent = `Fetching ${url}…`;
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      ingest(data);
+      return;
+    } catch (_) { /* try next */ }
+  }
+  document.getElementById('loading').innerHTML =
+    '<p style="color:#e53935">Could not load nwo_textile_raw.json.<br>Serve this file over HTTP alongside the JSON.</p>';
+})();
+
+// ═══════════════════════════════════════════════════════════════
+//  Utilities
+// ═══════════════════════════════════════════════════════════════
+function escHtml(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

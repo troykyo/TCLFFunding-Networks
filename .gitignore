@@ -1,0 +1,6 @@
+# Downloaded source data (re-created by the fetch scripts)
+cordis_cache/
+erasmus_cache/
+
+__pycache__/
+.DS_Store
